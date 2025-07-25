@@ -3,6 +3,7 @@ const SalesInvoiceSchema = new mongoose.Schema({
   invoiceNumber: String,
   customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer' },
   date: Date,
+  dueDate: Date,
   items: [{
     productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
     description: String,

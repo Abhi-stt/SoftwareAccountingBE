@@ -38,29 +38,39 @@ router.get('/:id', auth, async (req, res) => {
 
 // Create sales invoice
 router.post('/', auth, async (req, res) => {
-  const data = req.body;
-  // Calculate totalAmount if not provided
-  if (!data.totalAmount && Array.isArray(data.items)) {
-    data.totalAmount = data.items.reduce((sum, item) => sum + (item.amount || 0), 0);
+  try {
+    const data = req.body;
+    // Calculate totalAmount if not provided
+    if (!data.totalAmount && Array.isArray(data.items)) {
+      data.totalAmount = data.items.reduce((sum, item) => sum + (item.amount || 0), 0);
+    }
+    // Set default status if not provided
+    if (!data.status) {
+      data.status = 'Unpaid';
+    }
+    const invoice = new SalesInvoice(data);
+    await invoice.save();
+    // Populate customerId for response
+    await invoice.populate('customerId');
+    const io = req.app.get('io');
+    if (io) io.emit('invoice:created', invoice);
+    res.status(201).json(invoice);
+  } catch (err) {
+    res.status(400).json({ message: 'Failed to save invoice', error: err.message });
   }
-  // Set default status if not provided
-  if (!data.status) {
-    data.status = 'Unpaid';
-  }
-  const invoice = new SalesInvoice(data);
-  await invoice.save();
-  const io = req.app.get('io');
-  if (io) io.emit('invoice:created', invoice);
-  res.status(201).json(invoice);
 });
 
 // Update sales invoice
 router.put('/:id', auth, async (req, res) => {
-  const invoice = await SalesInvoice.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  if (!invoice) return res.status(404).json({ message: 'Sales invoice not found' });
-  const io = req.app.get('io');
-  if (io) io.emit('invoice:updated', invoice);
-  res.json(invoice);
+  try {
+    const invoice = await SalesInvoice.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('customerId');
+    if (!invoice) return res.status(404).json({ message: 'Sales invoice not found' });
+    const io = req.app.get('io');
+    if (io) io.emit('invoice:updated', invoice);
+    res.json(invoice);
+  } catch (err) {
+    res.status(400).json({ message: 'Failed to update invoice', error: err.message });
+  }
 });
 
 // Delete sales invoice

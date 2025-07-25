@@ -45,6 +45,8 @@ router.post('/', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   const movement = await StockMovement.findByIdAndUpdate(req.params.id, req.body, { new: true });
   if (!movement) return res.status(404).json({ message: 'Stock movement not found' });
+  const io = req.app.get('io');
+  if (io) io.emit('stockmovement:updated', movement);
   res.json(movement);
 });
 
@@ -52,6 +54,8 @@ router.put('/:id', auth, async (req, res) => {
 router.delete('/:id', auth, async (req, res) => {
   const movement = await StockMovement.findByIdAndDelete(req.params.id);
   if (!movement) return res.status(404).json({ message: 'Stock movement not found' });
+  const io = req.app.get('io');
+  if (io) io.emit('stockmovement:deleted', movement?._id || req.params.id);
   res.json({ message: 'Stock movement deleted' });
 });
 

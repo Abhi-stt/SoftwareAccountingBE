@@ -40,6 +40,8 @@ router.get('/:id', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
   const bill = new PurchaseBill(req.body);
   await bill.save();
+  // Populate vendorId for response
+  await bill.populate('vendorId');
   const io = req.app.get('io');
   if (io) io.emit('purchasebill:created', bill);
   res.status(201).json(bill);
@@ -47,7 +49,7 @@ router.post('/', auth, async (req, res) => {
 
 // Update purchase bill
 router.put('/:id', auth, async (req, res) => {
-  const bill = await PurchaseBill.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  const bill = await PurchaseBill.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('vendorId');
   if (!bill) return res.status(404).json({ message: 'Purchase bill not found' });
   const io = req.app.get('io');
   if (io) io.emit('purchasebill:updated', bill);
